@@ -10,6 +10,7 @@ import pickle
 import os.path
 from argparse import ArgumentParser
 import time
+import random
 import sys
 
 # This package contains various machine learning algorithms
@@ -19,11 +20,14 @@ from sklearn.neural_network import MLPClassifier
 import joblib
 
 from bots.rand import rand
-# from bots.rdeep import rdeep
+from bots.rdeep import rdeep
 
 from bots.ml.ml import features
 
-def create_dataset(path, player=rand.Bot(), games=2000, phase=1):
+MODEL_NAME = 'model9'
+classification = False
+
+def create_dataset(path, player=rdeep.Bot(), games=2000, phase=1):
     """Create a dataset that can be used for training the ML bot model.
     The dataset is created by having the player (bot) play games against itself.
     The games parameter indicates how many games will be started.
@@ -38,7 +42,7 @@ def create_dataset(path, player=rand.Bot(), games=2000, phase=1):
     games -- the number of games to play, default 2000
     phase -- wheter to start the games in phase 1, the default, or phase 2
     """ 
-    
+    random.seed(68)
     data = []
     target = []
 
@@ -56,7 +60,7 @@ def create_dataset(path, player=rand.Bot(), games=2000, phase=1):
             sys.stdout.flush()
 
         # Randomly generate a state object starting in specified phase.
-        state = State.generate(phase=phase)
+        state = State.generate(id = g, phase=phase)
 
         state_vectors = []
 
@@ -66,7 +70,7 @@ def create_dataset(path, player=rand.Bot(), games=2000, phase=1):
             given_state = state.clone(signature=state.whose_turn()) if state.get_phase() == 1 else state
 
             # Add the features representation of a state to the state_vectors array
-            state_vectors.append(features(given_state))
+            state_vectors.append(features(given_state,MODEL_NAME))
 
             # Advance to the next state
             move = player.get_move(given_state)
@@ -77,13 +81,30 @@ def create_dataset(path, player=rand.Bot(), games=2000, phase=1):
         for state_vector in state_vectors:
             data.append(state_vector)
 
-            if winner == 1:
-                result = 'won'
+            if classification:
+                if winner == 1:
+                    if score == 1:
+                        result = 'won1'
+                    elif score == 2:
+                        result = 'won2'
+                    else:
+                        result = 'won3'
 
-            elif winner == 2:
-                result = 'lost'
+                elif winner == 2:
+                    if score == 1:
+                        result = 'lost1'
+                    elif score == 2:
+                        result = 'lost2'
+                    else:
+                        result = 'lost3'
 
-            target.append(result)
+                target.append(result)
+            else:
+                if winner == 1:
+                    result = 'won'
+                elif winner == 2:
+                    result = 'lost'
+                target.append(result)
 
     with open(path, 'wb') as output:
         pickle.dump((data, target), output, pickle.HIGHEST_PROTOCOL)
@@ -100,12 +121,12 @@ parser = ArgumentParser()
 parser.add_argument("-d", "--dset-path",
                     dest="dset_path",
                     help="Optional dataset path",
-                    default="dataset.pkl")
+                    default="./bots/ml/datasets/dataset.pkl")
 
 parser.add_argument("-m", "--model-path",
                     dest="model_path",
                     help="Optional model path. Note that this path starts in bots/ml/ instead of the base folder, like dset_path above.",
-                    default="model.pkl")
+                    default="./models/model.pkl")
 
 parser.add_argument("-o", "--overwrite",
                     dest="overwrite",
@@ -121,7 +142,7 @@ parser.add_argument("--no-train",
 options = parser.parse_args()
 
 if options.overwrite or not os.path.isfile(options.dset_path):
-    create_dataset(options.dset_path, player=rand.Bot(), games=10000)
+    create_dataset(options.dset_path, player=rdeep.Bot(), games=10000)
 
 if options.train:
 
@@ -151,6 +172,7 @@ if options.train:
         data, target = pickle.load(output)
 
     # Train a neural network
+
     learner = MLPClassifier(hidden_layer_sizes=hidden_layer_sizes, learning_rate_init=learning_rate, alpha=regularization_strength, verbose=True, early_stopping=True, n_iter_no_change=6)
     # learner = sklearn.linear_model.LogisticRegression()
 

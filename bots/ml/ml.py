@@ -10,9 +10,14 @@ from itertools import chain
 
 import joblib
 
+model_names = ['model','model1','model2','model3','model4','model5','model6','model7','model8','model9']
+model_name = model_names[9]
+
+classification = False
+
 # Path of the model we will use. If you make a model
 # with a different name, point this line to its path.
-DEFAULT_MODEL = os.path.dirname(os.path.realpath(__file__)) + '/model.pkl'
+DEFAULT_MODEL = os.path.dirname(os.path.realpath(__file__)) + '/models/{}.pkl'.format(model_name)
 
 class Bot:
 
@@ -22,7 +27,6 @@ class Bot:
 
     def __init__(self, randomize=True, model_file=DEFAULT_MODEL):
 
-        print(model_file)
         self.__randomize = randomize
 
         # Load the model
@@ -53,6 +57,9 @@ class Bot:
 
             next_state = state.next(move)
 
+            # IMPLEMENT: Add a function call so that 'value' will
+            # contain the predicted value of 'next_state'
+            # NOTE: This is different from the line in the minimax/alphabeta bot
             value = self.heuristic(next_state)
 
             if maximizing(state):
@@ -69,7 +76,7 @@ class Bot:
     def heuristic(self, state):
 
         # Convert the state to a feature vector
-        feature_vector = [features(state)]
+        feature_vector = [features(state,model_name)]
 
         # These are the classes: ('won', 'lost')
         classes = list(self.__model.classes_)
@@ -79,7 +86,12 @@ class Bot:
         prob = self.__model.predict_proba(feature_vector)[0]
 
         # Weigh the win/loss outcomes (-1 and 1) by their probabilities
-        res = -1.0 * prob[classes.index('lost')] + 1.0 * prob[classes.index('won')]
+
+        if not classification:
+            res = -1.0 * prob[classes.index('lost')] + 1.0 * prob[classes.index('won')]
+        else:
+            res = -1.0 * prob[classes.index('lost1')] + 1.0 * prob[classes.index('won1')] + -2.0 * prob[classes.index('lost2')]\
+        + 2.0 * prob[classes.index('won2')] + -3.0 * prob[classes.index('lost3')] + 3.0 * prob[classes.index('won3')]
 
         return res
 
@@ -92,7 +104,7 @@ def maximizing(state):
     return state.whose_turn() == 1
 
 
-def features(state):
+def features(state,model_name):
     # type: (State) -> tuple[float, ...]
     """
     Extract features from this state. Remember that every feature vector returned should have the same length.
@@ -100,7 +112,6 @@ def features(state):
     :param state: A state to be converted to a feature vector
     :return: A tuple of floats: a feature vector representing this state.
     """
-
     feature_set = []
 
     # Add player 1's points to feature set
@@ -133,6 +144,9 @@ def features(state):
     # Add opponent's played card to feature set
     opponents_played_card = state.get_opponents_played_card()
 
+    #moves = state.moves()
+
+
 
     ################## You do not need to do anything below this line ########################
 
@@ -146,7 +160,6 @@ def features(state):
     perspective = [card if card != 'P2H' else [0, 0, 0, 1, 0, 0] for card in perspective]
     perspective = [card if card != 'P1W' else [0, 0, 0, 0, 1, 0] for card in perspective]
     perspective = [card if card != 'P2W' else [0, 0, 0, 0, 0, 1] for card in perspective]
-
     # Append one-hot encoded perspective to feature_set
     feature_set += list(chain(*perspective))
 
@@ -160,6 +173,53 @@ def features(state):
     feature_set.append(p1_pending_points/total_pending_points if total_pending_points > 0 else 0.)
     feature_set.append(p2_pending_points/total_pending_points if total_pending_points > 0 else 0.)
 
+    '''
+    My features
+    '''
+
+    model_additional_features = {
+        'model' : [],
+        'model1': [],
+        'model2': ['point_diff/total'],
+        'model3': ['ace one hot'],
+        'model4': ['point_diff/total', 'ace one hot'],
+        'model5': ['trump one hot'],
+        'model6': ['trump one hot', 'point_diff/total'],
+        'model7': ['trump one hot', 'point_diff/total', 'ace one hot'],
+        'model8': [],
+        'model9': ['point_diff/total']
+    }
+
+    #apppend difference between points over total points
+    if 'point_diff/total' in model_additional_features[model_name]:
+        feature_set.append((p1_points - p2_points)/total_points if total_points> 0 else 0.)
+        feature_set.append((p2_points - p1_points)/total_points if total_points>0 else 0.)
+    hand = state.hand()
+    #ace in hand [0,0,0,0,0]
+    if 'ace one hot' in model_additional_features[model_name]:
+        ace = [0,5,10,15]
+        ace_in_hand = [0]*5
+        index = sum([1 for item in ace if item in hand])
+        ace_in_hand[index]=1
+        feature_set+=ace_in_hand
+
+    #trump in hand [0,0,0,0,0,0] C - 0,1,2,3,4   D - 5,6,7,8,9  H - 10,11,12,13,14 S - 15,16,17,18,19
+
+    if 'trump one hot' in model_additional_features[model_name]:
+        cards = {}
+        cards['C'] = [0,1,2,3,4]
+        cards['D'] = [5,6,7,8,9]
+        cards['H'] = [10,11,12,13,14]
+        cards['S'] = [15,16,17,19,19]
+        trump_in_hand = [0]*6
+        trump_hand = cards[trump_suit]
+        index = sum([1 for item in trump_hand if item in hand])
+        trump_in_hand[index] = 1
+        feature_set+=trump_in_hand
+
+    '''
+    end of my features
+    '''
     # Convert trump suit to id and add to feature set
     # You don't need to add anything to this part
     suits = ["C", "D", "H", "S"]
@@ -184,5 +244,7 @@ def features(state):
     opponents_played_card_onehot[opponents_played_card if opponents_played_card is not None else 20] = 1
     feature_set += opponents_played_card_onehot
 
+
     # Return feature set
+    #print(feature_set)
     return feature_set
