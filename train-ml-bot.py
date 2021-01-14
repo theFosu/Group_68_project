@@ -24,7 +24,7 @@ from bots.rdeep import rdeep
 
 from bots.ml.ml import features
 
-MODEL_NAME = 'model9'
+MODEL_NAME = 'model14'
 classification = False
 
 def create_dataset(path, player=rdeep.Bot(), games=2000, phase=1):

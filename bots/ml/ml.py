@@ -10,8 +10,9 @@ from itertools import chain
 
 import joblib
 
-model_names = ['model','model1','model2','model3','model4','model5','model6','model7','model8','model9']
-model_name = model_names[9]
+model_names = ['model','model1','model2','model3','model4','model5','model6','model7','model8','model9','model10','model11','model12'\
+               ,'model13','model14']
+model_name = model_names[14]
 
 classification = False
 
@@ -26,6 +27,7 @@ class Bot:
     __model = None
 
     def __init__(self, randomize=True, model_file=DEFAULT_MODEL):
+        print(model_file)
 
         self.__randomize = randomize
 
@@ -178,22 +180,34 @@ def features(state,model_name):
     '''
 
     model_additional_features = {
-        'model' : [],
-        'model1': [],
-        'model2': ['point_diff/total'],
-        'model3': ['ace one hot'],
-        'model4': ['point_diff/total', 'ace one hot'],
-        'model5': ['trump one hot'],
-        'model6': ['trump one hot', 'point_diff/total'],
-        'model7': ['trump one hot', 'point_diff/total', 'ace one hot'],
-        'model8': [],
-        'model9': ['point_diff/total']
+        'model' :  [],
+        'model1':  [],
+        'model2':  ['point_diff/total'],
+        'model3':  ['ace one hot'],
+        'model4':  ['point_diff/total', 'ace one hot'],
+        'model5':  ['trump one hot'],
+        'model6':  ['trump one hot', 'point_diff/total'],
+        'model7':  ['trump one hot', 'point_diff/total', 'ace one hot'],
+        'model8':  [],
+        'model9':  ['point_diff/total'],
+        'model10': ['points to win'],
+        'model11': ['points in hand/points to win'],
+        'model12': ['points to win'],
+        'model13': ['point_diff/total','points to win'],
+        'model14': ['points squared']
     }
 
+
+    #points squared
+
+    if 'points squared' in model_additional_features[model_name]:
+        feature_set.append(p1_points*p1_points)
+        feature_set.append(p2_points*p2_points)
     #apppend difference between points over total points
     if 'point_diff/total' in model_additional_features[model_name]:
         feature_set.append((p1_points - p2_points)/total_points if total_points> 0 else 0.)
         feature_set.append((p2_points - p1_points)/total_points if total_points>0 else 0.)
+
     hand = state.hand()
     #ace in hand [0,0,0,0,0]
     if 'ace one hot' in model_additional_features[model_name]:
@@ -216,6 +230,18 @@ def features(state,model_name):
         index = sum([1 for item in trump_hand if item in hand])
         trump_in_hand[index] = 1
         feature_set+=trump_in_hand
+
+    if 'points to win' in model_additional_features[model_name]:
+        feature_set.append(66-p1_points)
+        feature_set.append(66-p2_points)
+
+    if 'points in hand/points to win' in model_additional_features[model_name]:
+        score = [11, 10, 4, 3, 2]
+        score_sum = 0
+        for card in hand:
+            score_sum += score[card%5]
+        feature_set.append(score_sum/(66.01-state.get_points(state.whose_turn())))
+
 
     '''
     end of my features

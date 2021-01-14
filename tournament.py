@@ -11,7 +11,7 @@ from api import State, util, engine
 import random, time
 
 def run_tournament(options):
-
+    random.seed(1)
     botnames = options.players.split(",")
     bots = []
     for botname in botnames:
@@ -45,7 +45,8 @@ def run_tournament(options):
                 games_won[winner]+=1
 
             playedgames += 1
-            print('Played {} out of {:.0f} games ({:.0f}%): {} \r'.format(playedgames, totalgames, playedgames/float(totalgames) * 100, wins))
+            if r%100 == 0:
+                print('Played {} out of {:.0f} games ({:.0f}%): {} \r'.format(playedgames, totalgames, playedgames/float(totalgames) * 100, wins))
 
     print('Results:')
     for i in range(len(bots)):
