@@ -24,8 +24,10 @@ from bots.rdeep import rdeep
 
 from bots.ml.ml import features
 
-MODEL_NAME = 'model14'
+MODEL_NAME = 'model23'
 classification = False
+GAMES = 10000
+ITER_NO_CHANGE = 6
 
 def create_dataset(path, player=rdeep.Bot(), games=2000, phase=1):
     """Create a dataset that can be used for training the ML bot model.
@@ -142,7 +144,7 @@ parser.add_argument("--no-train",
 options = parser.parse_args()
 
 if options.overwrite or not os.path.isfile(options.dset_path):
-    create_dataset(options.dset_path, player=rdeep.Bot(), games=10000)
+    create_dataset(options.dset_path, player=rdeep.Bot(), games=GAMES)
 
 if options.train:
 
@@ -173,7 +175,7 @@ if options.train:
 
     # Train a neural network
 
-    learner = MLPClassifier(hidden_layer_sizes=hidden_layer_sizes, learning_rate_init=learning_rate, alpha=regularization_strength, verbose=True, early_stopping=True, n_iter_no_change=6)
+    learner = MLPClassifier(hidden_layer_sizes=hidden_layer_sizes, learning_rate_init=learning_rate, alpha=regularization_strength, verbose=True, early_stopping=True, n_iter_no_change=ITER_NO_CHANGE)
     # learner = sklearn.linear_model.LogisticRegression()
 
     model = learner.fit(data, target)

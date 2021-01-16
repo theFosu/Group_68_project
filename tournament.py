@@ -10,8 +10,11 @@ from argparse import ArgumentParser
 from api import State, util, engine
 import random, time
 
+SEED = 3
+GAMES = 10000
+ID = 20000
 def run_tournament(options):
-    random.seed(1)
+    random.seed(SEED)
     botnames = options.players.split(",")
     bots = []
     for botname in botnames:
@@ -71,7 +74,7 @@ if __name__ == "__main__":
     parser.add_argument("-r", "--repeats",
                         dest="repeats",
                         help="How many matches to play for each pair of bots",
-                        type=int, default=10000)
+                        type=int, default=GAMES)
 
     parser.add_argument("-t", "--max-time",
                         dest="max_time",

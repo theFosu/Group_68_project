@@ -11,10 +11,10 @@ from itertools import chain
 import joblib
 
 model_names = ['model','model1','model2','model3','model4','model5','model6','model7','model8','model9','model10','model11','model12'\
-               ,'model13','model14']
-model_name = model_names[14]
+               ,'model13','model14','model15','model16','model17','model18','model19','model20','model21','model22','model23']
+model_name = model_names[22]
 
-classification = False
+classification = True
 
 # Path of the model we will use. If you make a model
 # with a different name, point this line to its path.
@@ -194,11 +194,23 @@ def features(state,model_name):
         'model11': ['points in hand/points to win'],
         'model12': ['points to win'],
         'model13': ['point_diff/total','points to win'],
-        'model14': ['points squared']
+        'model14': ['points squared'],
+        'model15': ['points squared','point_diff/total','points to win'],
+        'model16': ['point_diff/total','point_diff/total2','points to win', 'points to win2'],
+        'model17': ['point_diff/total2'],
+        'model18': ['points to win2'],
+        'model19': ['point_diff/total','points to win'],
+        'model20': ['point_diff'],
+        'model21': ['point_diff/total','point_diff/total2','points to win', 'points to win2','point_diff','points in hand/points to win',\
+                    'trump one hot','ace one hot','points squared'],
+        'model22': ['point_diff/total','points to win', 'point_diff'],
+        'model23': ['point_diff/total', 'points to win', 'point_diff']
     }
 
 
     #points squared
+
+
 
     if 'points squared' in model_additional_features[model_name]:
         feature_set.append(p1_points*p1_points)
@@ -208,6 +220,15 @@ def features(state,model_name):
         feature_set.append((p1_points - p2_points)/total_points if total_points> 0 else 0.)
         feature_set.append((p2_points - p1_points)/total_points if total_points>0 else 0.)
 
+    if 'point_diff/total2' in model_additional_features[model_name]:
+        feature_set.append(((p1_points - p2_points) / total_points)**2 if total_points > 0 else 0.)
+        feature_set.append(((p2_points - p1_points) / total_points)**2 if total_points > 0 else 0.)
+
+    if 'point_diff' in model_additional_features[model_name]:
+        feature_set.append(p1_points-p2_points)
+        feature_set.append(p2_points-p1_points)
+
+
     hand = state.hand()
     #ace in hand [0,0,0,0,0]
     if 'ace one hot' in model_additional_features[model_name]:
@@ -216,7 +237,16 @@ def features(state,model_name):
         index = sum([1 for item in ace if item in hand])
         ace_in_hand[index]=1
         feature_set+=ace_in_hand
+    #marriage one hot
 
+    if 'marriage one hot' in model_additional_features[model_name]:
+        marriage = False
+        for move in state.moves():
+            x,y = move
+            if type(x) is int and type(y) is int:
+                marriage = True
+                break
+        feature_set+= [1,0] if marriage else [0,1]
     #trump in hand [0,0,0,0,0,0] C - 0,1,2,3,4   D - 5,6,7,8,9  H - 10,11,12,13,14 S - 15,16,17,18,19
 
     if 'trump one hot' in model_additional_features[model_name]:
@@ -234,6 +264,10 @@ def features(state,model_name):
     if 'points to win' in model_additional_features[model_name]:
         feature_set.append(66-p1_points)
         feature_set.append(66-p2_points)
+
+    if 'points to win2' in model_additional_features[model_name]:
+        feature_set.append((66-p1_points)**2)
+        feature_set.append((66-p2_points)**2)
 
     if 'points in hand/points to win' in model_additional_features[model_name]:
         score = [11, 10, 4, 3, 2]
